@@ -1,6 +1,10 @@
 # @actvalue/mysql-redis-cache
 
-wrapper for MySQL queries with Redis caching
+![npm version](https://badgen.net/npm/v/@actvalue/mysql-redis-cache)
+![npm tot downloads](https://badgen.net/npm/dt/@actvalue/mysql-redis-cache)
+![npm license](https://badgen.net/npm/license/@actvalue/mysql-redis-cache)
+
+Wrapper for MySQL queries with Redis caching.
 
 ## Install
 
