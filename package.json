@@ -1,12 +1,11 @@
 {
   "name": "@actvalue/mysql-redis-cache",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
     "lint": "eslint src --fix",
-    "build": "tsc",
-    "deploy": "publish"
+    "build": "tsc"
   },
   "author": "ActValue",
   "license": "MIT",
@@ -14,7 +13,7 @@
     "access": "public"
   },
   "files": [
-    "src/"
+    "lib/"
   ],
   "dependencies": {
     "mysql": "^2.18.1",
