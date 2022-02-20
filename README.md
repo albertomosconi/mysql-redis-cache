@@ -37,14 +37,13 @@ const redisConfig = {
 };
 
 // create instance and connect
-const mrc = new MRCInstance(mysqlConfig);
-await mrc.connectRedis(redisConfig);
+const mrc = new MRCInstance(mysqlConfig, redisConfig);
 
 // execute queries
 const query = 'SELECT * FROM table WHERE name = ?';
 const params = ['Alberto'];
 const paramNames = ['Name'];
-const ttl = 3600;
+const ttl = 3600; // default is 24h
 
 const result = await mrc.queryWithCache(query, params, paramNames, ttl);
 ```

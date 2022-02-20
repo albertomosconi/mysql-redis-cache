@@ -1,6 +1,6 @@
 {
   "name": "@actvalue/mysql-redis-cache",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "scripts": {

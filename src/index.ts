@@ -4,21 +4,28 @@ import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 export class MRCInstance {
   mysqlPool: Pool;
+  redisConfig: RedisClientOptions | undefined;
   redisClient: RedisClientType | undefined;
 
-  constructor(mysqlConfig: PoolConfig) {
+  /**
+   *
+   * @param mysqlConfig - Configuration for a MySQL connection.
+   * @param redisConfig - Optional configuration for connection to Redis.
+   */
+  constructor(mysqlConfig: PoolConfig, redisConfig?: RedisClientOptions) {
     this.mysqlPool = createPool(mysqlConfig);
+    this.redisConfig = redisConfig;
   }
 
   /**
    * Connect to a Redis instance.
-   * @param config - The Redis config.
    */
-  async connectRedis(config?: RedisClientOptions) {
-    this.redisClient = createClient(config) as RedisClientType;
-    this.redisClient.on('error', (err) =>
-      console.log('Redis Client Error', err),
-    );
+  async _connectRedis() {
+    this.redisClient = createClient(this.redisConfig) as RedisClientType;
+    this.redisClient.on('error', (err) => {
+      this.redisClient = undefined;
+      console.log('Redis Client Error', err);
+    });
     await this.redisClient.connect();
   }
 
@@ -67,7 +74,7 @@ export class MRCInstance {
    * @param query - A MySQL query.
    * @param params - The parameters for the query.
    * @param paramNames - The names of the query parameters.
-   * @param ttl - Expiration time in seconds for the query cache.
+   * @param ttl - Expiration time in seconds for the query cache. Default is 24 hours.
    * @returns - The query result.
    */
   async queryWithCache(
@@ -76,6 +83,9 @@ export class MRCInstance {
     paramNames: string[] = [],
     ttl = 86400,
   ) {
+    // check Redis connection
+    if (!this.redisClient) await this._connectRedis();
+    // get key for query
     const key = this.getKeyFromQuery(query, params, paramNames);
     // get cached query result from redis
     const result = await this.redisClient?.get(key);
