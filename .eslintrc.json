@@ -21,7 +21,8 @@
     "camelcase": "off",
     "max-nested-callbacks": ["error", 10],
     "max-params": ["error", 5],
-    "max-statements": ["error", 20]
+    "max-statements": ["error", 20],
+    "@typescript-eslint/no-explicit-any": "off"
   },
   "ignorePatterns": ["node_modules", "lib"]
 }
