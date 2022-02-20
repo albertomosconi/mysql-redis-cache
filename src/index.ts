@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { createPool, Pool, PoolConfig } from 'mysql';
 import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
-class MRCInstance {
+export class MRCInstance {
   mysqlPool: Pool;
   redisClient: RedisClientType | undefined;
 
@@ -92,7 +92,3 @@ class MRCInstance {
     return r;
   }
 }
-
-module.exports = {
-  MRCInstance,
-};
