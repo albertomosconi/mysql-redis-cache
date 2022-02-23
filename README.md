@@ -16,10 +16,12 @@ yarn add @actvalue/mysql-redis-cache
 npm i @actvalue/mysql-redis-cache
 ```
 
-## Usage
+## Client Usage
+
+The client is used to execute queries and caching the result.
 
 ```javascript
-import { MRCInstance } from '@actvalue/mysql-redis-cache';
+import { MRCClient } from '@actvalue/mysql-redis-cache';
 
 const mysqlConfig = {
   host: '<mysql host>',
@@ -41,7 +43,7 @@ const redisConfig = {
 };
 
 // create instance and connect
-const mrc = new MRCInstance(mysqlConfig, redisConfig);
+const mrc = new MRCClient(mysqlConfig, redisConfig);
 
 // execute queries
 const query = 'SELECT * FROM table WHERE name = ?';
@@ -50,4 +52,27 @@ const paramNames = ['Name'];
 const ttl = 3600; // default is 24h
 
 const result = await mrc.queryWithCache(query, params, paramNames, ttl);
+```
+
+## Server Usage
+
+The server is used to delete cached queries.
+
+```javascript
+import { MRCServer } from '@actvalue/mysql-redis-cache';
+
+const redisConfig = {
+  username: '<user>',
+  password: '<password>',
+  socket: {
+    host: '<redis host>',
+    port: 6379,
+    connectionTimeout: 30000,
+  },
+};
+
+// create instance and connect
+const mrc = new MRCServer(redisConfig);
+// delete all queries concerning StoreId = 6
+await mrc.dropOutdatedCache(['StoreId'], [6]);
 ```
