@@ -1,6 +1,7 @@
 {
   "name": "@actvalue/mysql-redis-cache",
-  "version": "0.0.8",
+  "description": "wrapper for MySQL queries with Redis caching",
+  "version": "0.0.9",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "scripts": {
