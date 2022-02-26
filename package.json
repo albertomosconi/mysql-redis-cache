@@ -6,8 +6,8 @@
   "types": "types/index.d.ts",
   "scripts": {
     "lint": "eslint src --fix",
-    "pretest": "docker-compose -f tests/redis-compose.yml up &",
-    "test": "jest || true",
+    "pretest": "docker-compose -f tests/redis-compose.yml up -d",
+    "test": "jest",
     "posttest": "docker-compose -f tests/redis-compose.yml down --volumes",
     "build": "rm -rf lib/ types/ && tsc"
   },

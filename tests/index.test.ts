@@ -9,13 +9,15 @@ let server: MRCServer;
 let client: MRCClient;
 let spy: jest.SpyInstance;
 
-beforeAll(() => {
+beforeAll(async () => {
   server = new MRCServer(redisConfig);
   client = new MRCClient({}, redisConfig);
+  await client._connectRedis();
+  await client.redisClient?.flushAll();
   spy = jest
     .spyOn(client, 'queryToPromise')
-    .mockImplementation((query, params) => {
-      return new Promise((resolve, reject) => {
+    .mockImplementation((_, params) => {
+      return new Promise(resolve => {
         resolve(params);
       });
     });
@@ -54,7 +56,7 @@ it('tests if entries expire after ttl seconds', async () => {
   v = await client.redisClient?.get(
     client.getKeyFromQuery(query, params, paramNames),
   );
-  expect(JSON.parse(v as string)).toBeNull();
+  expect(v).toBeNull();
 });
 
 afterAll(async () => {

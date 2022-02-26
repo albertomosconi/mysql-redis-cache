@@ -3,4 +3,5 @@ services:
   run:
     container_name: test-redis
     image: redis:latest
-    network_mode: host
+    ports:
+      - '6379:6379'
