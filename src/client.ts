@@ -9,7 +9,6 @@ export default class Client {
   redisClient: RedisClientType | undefined;
 
   /**
-   *
    * @param mysqlConfig - Configuration for a MySQL connection.
    * @param redisConfig - Optional configuration for connection to Redis.
    */

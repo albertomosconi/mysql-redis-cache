@@ -4,6 +4,9 @@ export default class Server {
   redisConfig: RedisClientOptions | undefined;
   redisClient: RedisClientType | undefined;
 
+  /**
+   * @param redisConfig - The configuration for Redis.
+   */
   constructor(redisConfig: RedisClientOptions) {
     this.redisConfig = redisConfig;
   }
