@@ -1,7 +1,7 @@
 {
   "name": "@actvalue/mysql-redis-cache",
   "description": "wrapper for MySQL queries with Redis caching",
-  "version": "0.0.9",
+  "version": "0.1.0",
   "main": "lib/index.js",
   "types": "types/index.d.ts",
   "scripts": {
@@ -9,7 +9,7 @@
     "pretest": "docker-compose -f tests/redis-compose.yml up &",
     "test": "jest || true",
     "posttest": "docker-compose -f tests/redis-compose.yml down --volumes",
-    "build": "tsc"
+    "build": "rm -rf lib/ types/ && tsc"
   },
   "author": "ActValue",
   "license": "MIT",
