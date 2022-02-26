@@ -3,7 +3,8 @@ import { createPool, Pool, PoolConfig } from 'mysql';
 import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 export default class Client {
-  mysqlPool: Pool;
+  mysqlPool: Pool | undefined;
+  mysqlConfig: PoolConfig;
   redisConfig: RedisClientOptions | undefined;
   redisClient: RedisClientType | undefined;
 
@@ -13,8 +14,15 @@ export default class Client {
    * @param redisConfig - Optional configuration for connection to Redis.
    */
   constructor(mysqlConfig: PoolConfig, redisConfig?: RedisClientOptions) {
-    this.mysqlPool = createPool(mysqlConfig);
+    this.mysqlConfig = mysqlConfig;
     this.redisConfig = redisConfig;
+  }
+
+  /**
+   * Create MySQL pool.
+   */
+  _connectMySQL() {
+    this.mysqlPool = createPool(this.mysqlConfig);
   }
 
   /**
@@ -30,14 +38,23 @@ export default class Client {
   }
 
   /**
+   * Disconnect from Redis.
+   */
+  async closeRedisConnection() {
+    await this.redisClient?.quit();
+  }
+
+  /**
    * Execute the given query as Promise
    * @param query - A MySQL query.
    * @param params - An array of parameters for the query.
    * @returns - The result of the query.
    */
   queryToPromise(query: string, params?: any[]): Promise<any> {
+    if (!this.mysqlPool) this._connectMySQL();
+
     return new Promise((resolve, reject) => {
-      return this.mysqlPool.query(query, params, (error, rows) => {
+      return this.mysqlPool?.query(query, params, (error, rows) => {
         if (error) {
           reject(error);
           return;

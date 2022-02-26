@@ -23,7 +23,7 @@ export default class Server {
   /**
    * Disconnect from Redis.
    */
-  async closeConnection() {
+  async closeRedisConnection() {
     await this.redisClient?.quit();
   }
 
@@ -31,11 +31,15 @@ export default class Server {
    * Delete all cached queries where the key matches the given keys.
    * @param keyNames - The names of the modified keys.
    * @param keyValues - The values of the modified keys.
+   * @returns The number of deleted records.
    */
-  async dropOutdatedCache(keyNames: string[], keyValues: any[]) {
+  async dropOutdatedCache(
+    keyNames: string[],
+    keyValues: any[],
+  ): Promise<number> {
     // check Redis connection
     if (!this.redisClient) await this._connectRedis();
-    if (!this.redisClient) return;
+    if (!this.redisClient) return 0;
 
     // build regex from key names and values
     let keyRegexString = '';
@@ -43,16 +47,22 @@ export default class Server {
       keyRegexString += '' + keyNames[i] + '=' + keyValues[i] + '|';
     }
     keyRegexString = keyRegexString.slice(0, -1);
-    const keyRegex: RegExp = new RegExp(keyRegexString);
+    const keyRegex = new RegExp(keyRegexString);
 
     // loop over all keys and find those who match the regex
     let reply = { cursor: 0, keys: [''] };
+    let deletedCount = 0;
     do {
       reply = await this.redisClient.scan(reply.cursor);
-      for (let key of reply.keys) {
+      for (const key of reply.keys) {
         // delete key if it matches
-        if (keyRegex.test(key)) await this.redisClient.del(key);
+        if (keyRegex.test(key)) {
+          await this.redisClient.del(key);
+          deletedCount++;
+        }
       }
     } while (reply.cursor !== 0);
+
+    return deletedCount;
   }
 }
