@@ -4,7 +4,7 @@ import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 export default class Client {
   mysqlPool: Pool | undefined;
-  mysqlConfig: PoolConfig;
+  mysqlConfig: PoolConfig | string;
   redisConfig: RedisClientOptions | undefined;
   redisClient: RedisClientType | undefined;
 
@@ -12,7 +12,7 @@ export default class Client {
    * @param mysqlConfig - Configuration for a MySQL connection.
    * @param redisConfig - Optional configuration for connection to Redis.
    */
-  constructor(mysqlConfig: PoolConfig, redisConfig?: RedisClientOptions) {
+  constructor(mysqlConfig: PoolConfig | string, redisConfig?: RedisClientOptions) {
     this.mysqlConfig = mysqlConfig;
     this.redisConfig = redisConfig;
   }
