@@ -1,6 +1,6 @@
-import crypto from 'crypto';
-import { createPool, Pool, PoolConfig } from 'mysql';
-import { createClient, RedisClientOptions, RedisClientType } from 'redis';
+import crypto from "crypto";
+import { createPool, Pool, PoolConfig } from "mysql";
+import { createClient, RedisClientOptions, RedisClientType } from "redis";
 
 export default class Client {
   mysqlPool: Pool | undefined;
@@ -12,7 +12,10 @@ export default class Client {
    * @param mysqlConfig - Configuration for a MySQL connection.
    * @param redisConfig - Optional configuration for connection to Redis.
    */
-  constructor(mysqlConfig: PoolConfig | string, redisConfig?: RedisClientOptions) {
+  constructor(
+    mysqlConfig: PoolConfig | string,
+    redisConfig?: RedisClientOptions
+  ) {
     this.mysqlConfig = mysqlConfig;
     this.redisConfig = redisConfig;
   }
@@ -29,9 +32,9 @@ export default class Client {
    */
   async _connectRedis() {
     this.redisClient = createClient(this.redisConfig) as RedisClientType;
-    this.redisClient.on('error', (err) => {
+    this.redisClient.on("error", (err) => {
       this.redisClient = undefined;
-      console.log('Redis Client Error', err);
+      console.log("Redis Client Error", err);
     });
     await this.redisClient.connect();
   }
@@ -73,16 +76,101 @@ export default class Client {
   getKeyFromQuery(
     query: string,
     params?: any[],
-    paramNames: string[] = [],
+    paramNames: string[] = []
   ): string {
-    const hash = crypto.createHash('sha1').update(query).digest('hex');
-    let key = '';
+    const hash = crypto.createHash("sha1").update(query).digest("hex");
+    let key = "";
     if (params && params.length > 0)
       paramNames.forEach((name, i) => {
-        key += name + '=' + params[i] + '_';
+        key += name + "=" + params[i] + "_";
       });
     key += hash;
     return key;
+  }
+
+  /**
+   * Return from cache.
+   * @param query - A MySQL query.
+   * @param params - The parameters for the query.
+   * @param paramNames - The names of the query parameters.
+   * @returns - The query result.
+   */
+  async readFromCache(
+    query: string,
+    params?: any[],
+    paramNames: string[] = []
+  ) {
+    // check Redis connection
+    if (!this.redisClient) await this._connectRedis();
+    // get key for query
+    const key = this.getKeyFromQuery(query, params, paramNames);
+    // get cached query result from redis
+    const result = await this.redisClient?.get(key);
+    // if found return cached value
+    if (result) return JSON.parse(result);
+    return null;
+  }
+
+  /**
+   * Check the cache before executing a MySQL query.
+   * @param query - A MySQL query.
+   * @param value - The value to store in the cache.
+   * @param params - The parameters for the query.
+   * @param paramNames - The names of the query parameters.
+   * @param ttl - Expiration time in seconds for the query cache. Default is 24 hours.
+   * @returns - The query result.
+   */
+  async writeToCache(
+    query: string,
+    value: string,
+    params?: any[],
+    paramNames: string[] = [],
+    ttl = 86400
+  ) {
+    // check Redis connection
+    if (!this.redisClient) await this._connectRedis();
+    // get key for query
+    const key = this.getKeyFromQuery(query, params, paramNames);
+    // set key with ttl
+    const dt = Math.round(ttl * (Math.random() * 0.2 - 0.1));
+    return this.redisClient?.set(key, JSON.stringify(value), {
+      EX: ttl + dt,
+    });
+  }
+
+  /**
+   * Check the cache before executing an arbitrary query function passed as a parameter.
+   * @param fn - A query executing function.
+   * @param query - The function query signature.
+   * @param params - The parameters for the query.
+   * @param paramNames - The names of the query parameters.
+   * @param ttl - Expiration time in seconds for the query cache. Default is 24 hours.
+   * @returns - The query result.
+   */
+  async withCache(
+    fn: () => Promise<any>,
+    query: string,
+    params?: any[],
+    paramNames: string[] = [],
+    ttl = 86400
+  ) {
+    // check Redis connection
+    if (!this.redisClient) await this._connectRedis();
+    // get key for query
+    const key = this.getKeyFromQuery(query, params, paramNames);
+    // get cached query result from redis
+    const result = await this.redisClient?.get(key);
+    // if found return cached value
+    if (result) return JSON.parse(result);
+    // else execute query
+    const r = await fn();
+    // set key with ttl
+    const dt = Math.round(ttl * (Math.random() * 0.2 - 0.1));
+    await this.redisClient?.set(key, JSON.stringify(r), {
+      EX: ttl + dt,
+    });
+    // return query result
+    return r;
   }
 
   /**
@@ -97,24 +185,9 @@ export default class Client {
     query: string,
     params?: any[],
     paramNames: string[] = [],
-    ttl = 86400,
+    ttl = 86400
   ) {
-    // check Redis connection
-    if (!this.redisClient) await this._connectRedis();
-    // get key for query
-    const key = this.getKeyFromQuery(query, params, paramNames);
-    // get cached query result from redis
-    const result = await this.redisClient?.get(key);
-    // if found return cached value
-    if (result) return JSON.parse(result);
-    // else execute query
-    const r = await this.queryToPromise(query, params);
-    // set key with ttl
-    const dt = Math.round(ttl * (Math.random() * 0.2 - 0.1));
-    await this.redisClient?.set(key, JSON.stringify(r), {
-      EX: ttl + dt,
-    });
-    // return query result
-    return r;
+    const fn = () => this.queryToPromise(query, params);
+    return this.withCache(fn, query, params, paramNames, ttl);
   }
 }

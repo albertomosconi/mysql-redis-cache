@@ -59,6 +59,33 @@ it('tests if entries expire after ttl seconds', async () => {
   expect(v).toBeNull();
 });
 
+it('writes and reads values from cache', async () => {
+  const query = 'query';
+  const value = 'abc';
+  await client.writeToCache(query, value);
+  const v = await client.readFromCache(query);
+  expect(v).toBe(value);
+});
+
+it('uses cache with arbitrary query function', async () => {
+  const fn = () => client.queryToPromise(query, params);
+  let r = await client.withCache(fn, query, params, paramNames);
+  expect(r).toStrictEqual(params);
+  expect(spy).toHaveBeenCalledTimes(1);
+  r = await client.withCache(fn, query, params, paramNames);
+  expect(r).toStrictEqual(params);
+  // query is not triggered again
+  expect(spy).toHaveBeenCalledTimes(1);
+  r = await client.withCache(fn, query);
+  expect(r).toStrictEqual(params);
+  // query is triggered again bcause signature is different
+  expect(spy).toHaveBeenCalledTimes(2);
+});
+
+afterEach(() => {
+  jest.clearAllMocks();
+});
+
 afterAll(async () => {
   await server.closeRedisConnection();
   await client.closeRedisConnection();
