@@ -54,10 +54,7 @@ it('writes and reads values from cache', async () => {
   expect(v).toBe(value);
 });
 
-// RUN SKIPPED TESTS SPEPARETLY ONE BY ONE
-// TODO fix
-
-it.skip('tests if entries expire after ttl seconds', async () => {
+it('tests if entries expire after ttl seconds', async () => {
   const ttl = 2;
   await client.queryWithCache(query, params, paramNames, ttl);
   let v = await client.redisClient?.get(
@@ -72,7 +69,7 @@ it.skip('tests if entries expire after ttl seconds', async () => {
 });
 
 
-it.skip('uses cache with arbitrary query function', async () => {
+it('uses cache with arbitrary query function', async () => {
   const fn = () => client.queryToPromise(query, params);
   let r = await client.withCache(fn, query, params, paramNames);
   expect(r).toStrictEqual(params);
@@ -88,7 +85,7 @@ it.skip('uses cache with arbitrary query function', async () => {
 });
 
 afterEach(() => {
-  vi.resetAllMocks();
+  vi.clearAllMocks();
 });
 
 afterAll(async () => {

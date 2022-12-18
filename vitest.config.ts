@@ -5,7 +5,7 @@ export default defineConfig({
     threads: false,
     testTimeout: 15000,
     coverage: {
-      enabled: false,
+      enabled: true,
     },
   },
 });
