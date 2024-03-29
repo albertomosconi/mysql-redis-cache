@@ -1,6 +1,6 @@
-import crypto from "crypto";
-import { createPool, Pool, PoolConfig } from "mysql";
-import { createClient, RedisClientOptions, RedisClientType } from "redis";
+import crypto from 'crypto';
+import { createPool, Pool, PoolConfig } from 'mysql';
+import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 export default class Client {
   mysqlPool: Pool | undefined;
@@ -32,9 +32,9 @@ export default class Client {
    */
   async _connectRedis() {
     this.redisClient = createClient(this.redisConfig) as RedisClientType;
-    this.redisClient.on("error", (err) => {
+    this.redisClient.on('error', (err) => {
       this.redisClient = undefined;
-      console.log("Redis Client Error", err);
+      console.log('Redis Client Error', err);
     });
     await this.redisClient.connect();
   }
@@ -44,6 +44,14 @@ export default class Client {
    */
   async closeRedisConnection() {
     await this.redisClient?.quit();
+  }
+
+  /**
+   * Return pool to directly use mysql functions when needed.
+   */
+  getMySQLPool() {
+    if (!this.mysqlPool) this._connectMySQL();
+    return this.mysqlPool;
   }
 
   /**
@@ -78,11 +86,11 @@ export default class Client {
     params?: any[],
     paramNames: string[] = []
   ): string {
-    const hash = crypto.createHash("sha1").update(query).digest("hex");
-    let key = "";
+    const hash = crypto.createHash('sha1').update(query).digest('hex');
+    let key = '';
     if (params && params.length > 0)
       paramNames.forEach((name, i) => {
-        key += name + "=" + params[i] + "_";
+        key += name + '=' + params[i] + '_';
       });
     key += hash;
     return key;
