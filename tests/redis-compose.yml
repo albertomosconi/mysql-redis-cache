@@ -1,7 +1,22 @@
-version: '3.3'
 services:
   run:
     container_name: test-redis
     image: redis:latest
     ports:
       - '6379:6379'
+  
+  mysql:
+    container_name: test-mysql
+    image: mysql:8.4
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: test_mysql_redis_cache
+      MYSQL_USER: test
+      MYSQL_PASSWORD: password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "test", "-ppassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5

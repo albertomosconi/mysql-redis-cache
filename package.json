@@ -1,7 +1,7 @@
 {
   "name": "@actvalue/mysql-redis-cache",
   "description": "wrapper for MySQL queries with Redis caching",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "main": "./dist/index.js",
   "exports": {
     ".": {
@@ -26,19 +26,18 @@
     "dist/"
   ],
   "peerDependencies": {
-    "mysql": "^2.18.1",
-    "redis": "^4.6.13"
+    "mysql2": "^3.15.2",
+    "redis": "^5.8.3"
   },
   "devDependencies": {
-    "@types/mysql": "^2.15.21",
-    "@types/node": "^18.11.10",
-    "@typescript-eslint/eslint-plugin": "^5.45.0",
-    "@typescript-eslint/parser": "^5.45.0",
-    "@vitest/coverage-c8": "^0.25.8",
-    "eslint": "^8.29.0",
-    "tsup": "^6.5.0",
-    "typescript": "^4.9.3",
-    "vite": "^4.0.1",
-    "vitest": "^0.25.8"
+    "@types/node": "^22.x",
+    "@typescript-eslint/eslint-plugin": "^8.46.0",
+    "@typescript-eslint/parser": "^8.46.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "eslint": "^9.37.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "vitest": "^3.2.4"
   }
 }

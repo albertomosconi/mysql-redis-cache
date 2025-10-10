@@ -1,10 +1,10 @@
 import crypto from 'crypto';
-import { createPool, Pool, PoolConfig } from 'mysql';
+import { createPool, Pool, PoolOptions } from 'mysql2/promise';
 import { createClient, RedisClientOptions, RedisClientType } from 'redis';
 
 export default class Client {
   mysqlPool: Pool | undefined;
-  mysqlConfig: PoolConfig | string;
+  mysqlConfig: PoolOptions | string;
   redisConfig: RedisClientOptions | undefined;
   redisClient: RedisClientType | undefined;
 
@@ -13,7 +13,7 @@ export default class Client {
    * @param redisConfig - Optional configuration for connection to Redis.
    */
   constructor(
-    mysqlConfig: PoolConfig | string,
+    mysqlConfig: PoolOptions | string,
     redisConfig?: RedisClientOptions
   ) {
     this.mysqlConfig = mysqlConfig;
@@ -24,7 +24,7 @@ export default class Client {
    * Create MySQL pool.
    */
   _connectMySQL() {
-    this.mysqlPool = createPool(this.mysqlConfig);
+    this.mysqlPool = createPool(this.mysqlConfig as any);
   }
 
   /**
@@ -60,18 +60,11 @@ export default class Client {
    * @param params - An array of parameters for the query.
    * @returns - The result of the query.
    */
-  queryToPromise(query: string, params?: any[]): Promise<any> {
+  async queryToPromise(query: string, params?: any[]): Promise<any> {
     if (!this.mysqlPool) this._connectMySQL();
 
-    return new Promise((resolve, reject) => {
-      return this.mysqlPool?.query(query, params, (error, rows) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-        resolve(rows);
-      });
-    });
+    const [rows] = await this.mysqlPool!.query(query, params);
+    return rows;
   }
 
   /**

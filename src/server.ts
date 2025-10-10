@@ -53,7 +53,7 @@ export default class Server {
     const keyRegex = new RegExp(keyRegexString);
 
     // loop over all keys and find those who match the regex
-    let reply = { cursor: 0, keys: [''] };
+    let reply = { cursor: '0', keys: [''] };
     let deletedCount = 0;
     do {
       reply = await this.redisClient.scan(reply.cursor);
@@ -64,7 +64,7 @@ export default class Server {
           deletedCount++;
         }
       }
-    } while (reply.cursor !== 0);
+    } while (reply.cursor !== '0');
 
     return deletedCount;
   }

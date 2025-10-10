@@ -1,5 +1,5 @@
 import { MRCServer, MRCClient } from '../src';
-import { afterAll, afterEach, beforeAll, expect, it, SpyInstance, vi } from 'vitest'
+import { afterAll, afterEach, beforeAll, expect, it, vi } from 'vitest'
 
 const redisConfig = { socket: { connectTimeout: 60000 } };
 const query = 'SELECT * FROM users WHERE id = ?';
@@ -8,7 +8,7 @@ const paramNames = ['UserId'];
 
 let server: MRCServer;
 let client: MRCClient;
-let spy: SpyInstance;
+let spy: any;
 
 beforeAll(async () => {
   server = new MRCServer(redisConfig);
