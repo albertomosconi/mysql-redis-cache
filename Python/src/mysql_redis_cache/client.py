@@ -3,9 +3,10 @@
 import hashlib
 import json
 import random
+from collections.abc import Awaitable, Callable
+from datetime import date, datetime
 from decimal import Decimal
-from datetime import datetime, date
-from typing import Any, Callable, Awaitable, Optional, Union
+from typing import Any
 from urllib.parse import urlparse
 
 import aiomysql
@@ -24,11 +25,11 @@ class MRCClient:
         redis_config: Redis configuration dictionary
         redis_client: Redis client instance (created lazily)
     """
-    
+
     def __init__(
         self,
-        mysql_config: Union[dict[str, Any], str],
-        redis_config: Optional[dict[str, Any]] = None
+        mysql_config: dict[str, Any] | str,
+        redis_config: dict[str, Any] | None = None
     ):
         """Initialize client with MySQL and optional Redis configuration.
         
@@ -40,22 +41,22 @@ class MRCClient:
             redis_config: Optional Redis configuration dict.
                 Format: {'host': 'localhost', 'port': 6379, 'password': 'pass'}
         """
-        self.mysql_pool: Optional[aiomysql.Pool] = None
+        self.mysql_pool: aiomysql.Pool | None = None
         self.mysql_config = mysql_config
         self.redis_config = redis_config
-        self.redis_client: Optional[redis.Redis] = None
-    
+        self.redis_client: redis.Redis | None = None
+
     async def __aenter__(self) -> 'MRCClient':
         """Context manager entry - returns self for use in 'async with' statements."""
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Context manager exit - cleanup connections."""
         await self.close_redis_connection()
         if self.mysql_pool:
             self.mysql_pool.close()
             await self.mysql_pool.wait_closed()
-    
+
     def _parse_connection_string(self, conn_str: str) -> dict[str, Any]:
         """Parse MySQL connection string into configuration dict.
         
@@ -74,31 +75,31 @@ class MRCClient:
             'db': parsed.path.lstrip('/') if parsed.path else '',
         }
         return config
-    
+
     async def _connect_mysql(self) -> None:
         """Create MySQL connection pool using aiomysql."""
         if isinstance(self.mysql_config, str):
             config = self._parse_connection_string(self.mysql_config)
         else:
             config = self.mysql_config.copy()
-        
+
         # Extract pool-specific parameters
         minsize = config.pop('minsize', 1)
         maxsize = config.pop('maxsize', 10)
-        
+
         self.mysql_pool = await aiomysql.create_pool(
             minsize=minsize,
             maxsize=maxsize,
             **config
         )
-    
+
     async def _connect_redis(self) -> None:
         """Connect to Redis using redis.asyncio."""
         if not self.redis_config:
             return
-        
+
         self.redis_client = redis.Redis(**self.redis_config)
-        
+
         # Test connection
         try:
             # ping() returns bool, not awaitable in some versions, just try to use it
@@ -106,14 +107,14 @@ class MRCClient:
         except Exception as e:
             self.redis_client = None
             print(f"Redis Client Error: {e}")
-    
+
     async def close_redis_connection(self) -> None:
         """Close Redis connection gracefully."""
         if self.redis_client:
             await self.redis_client.aclose()
             self.redis_client = None
-    
-    def get_mysql_pool(self) -> Optional[aiomysql.Pool]:
+
+    def get_mysql_pool(self) -> aiomysql.Pool | None:
         """Return MySQL pool for direct database access.
         
         Creates the pool if it doesn't exist yet.
@@ -126,7 +127,7 @@ class MRCClient:
             # In practice, users should await other methods first
             raise RuntimeError("MySQL pool not initialized. Call an async method first.")
         return self.mysql_pool
-    
+
     def _normalize_row(self, row: dict) -> dict:
         """Normalize a database row for JSON serialization.
         
@@ -150,11 +151,11 @@ class MRCClient:
             else:
                 normalized[key] = value
         return normalized
-    
+
     async def query_to_promise(
         self,
         query: str,
-        params: Optional[list[Any]] = None
+        params: list[Any] | None = None
     ) -> Any:
         """Execute MySQL query and return results.
         
@@ -167,21 +168,21 @@ class MRCClient:
         """
         if not self.mysql_pool:
             await self._connect_mysql()
-        
+
         if not self.mysql_pool:
             raise RuntimeError("Failed to initialize MySQL pool")
-        
+
         async with self.mysql_pool.acquire() as conn:
             async with conn.cursor(aiomysql.DictCursor) as cursor:
                 await cursor.execute(query, params)
                 rows = await cursor.fetchall()
                 # Normalize rows for JSON serialization
                 return [self._normalize_row(row) for row in rows]
-    
+
     def get_key_from_query(
         self,
         query: str,
-        params: Optional[list[Any]] = None,
+        params: list[Any] | None = None,
         param_names: list[str] = []
     ) -> str:
         """Generate cache key using SHA1(query) + param_names=param_values.
@@ -196,20 +197,20 @@ class MRCClient:
         """
         hash_hex = hashlib.sha1(query.encode('utf-8')).hexdigest()
         key = ''
-        
+
         if params and len(params) > 0:
             for name, value in zip(param_names, params):
                 key += f"{name}={value}_"
-        
+
         key += hash_hex
         return key
-    
+
     async def read_from_cache(
         self,
         query: str,
-        params: Optional[list[Any]] = None,
+        params: list[Any] | None = None,
         param_names: list[str] = []
-    ) -> Optional[Any]:
+    ) -> Any | None:
         """Read cached query result from Redis.
         
         Args:
@@ -222,22 +223,22 @@ class MRCClient:
         """
         if not self.redis_client:
             await self._connect_redis()
-        
+
         if not self.redis_client:
             return None
-        
+
         key = self.get_key_from_query(query, params, param_names)
         result = await self.redis_client.get(key)
-        
+
         if result:
             return json.loads(result)
         return None
-    
+
     async def write_to_cache(
         self,
         query: str,
         value: Any,
-        params: Optional[list[Any]] = None,
+        params: list[Any] | None = None,
         param_names: list[str] = [],
         ttl: int = 86400
     ) -> None:
@@ -254,26 +255,26 @@ class MRCClient:
         """
         if not self.redis_client:
             await self._connect_redis()
-        
+
         if not self.redis_client:
             return
-        
+
         key = self.get_key_from_query(query, params, param_names)
-        
+
         # Add TTL jitter (±10%) to prevent cache stampede
         dt = round(ttl * random.uniform(-0.1, 0.1))
         ttl_with_jitter = ttl + dt
-        
+
         # Serialize to JSON with compact format (no spaces) to match TypeScript
         json_value = json.dumps(value, separators=(',', ':'), ensure_ascii=False)
-        
+
         await self.redis_client.set(key, json_value, ex=ttl_with_jitter)
-    
+
     async def with_cache(
         self,
         fn: Callable[[], Awaitable[Any]],
         query: str,
-        params: Optional[list[Any]] = None,
+        params: list[Any] | None = None,
         param_names: list[str] = [],
         ttl: int = 86400
     ) -> Any:
@@ -293,33 +294,33 @@ class MRCClient:
         """
         if not self.redis_client:
             await self._connect_redis()
-        
+
         if not self.redis_client:
             # No Redis, just execute function
             return await fn()
-        
+
         # Try to get from cache
         key = self.get_key_from_query(query, params, param_names)
         result = await self.redis_client.get(key)
-        
+
         if result:
             return json.loads(result)
-        
+
         # Execute function
         r = await fn()
-        
+
         # Cache result with jitter
         dt = round(ttl * random.uniform(-0.1, 0.1))
         ttl_with_jitter = ttl + dt
         json_value = json.dumps(r, separators=(',', ':'), ensure_ascii=False)
         await self.redis_client.set(key, json_value, ex=ttl_with_jitter)
-        
+
         return r
-    
+
     async def query_with_cache(
         self,
         query: str,
-        params: Optional[list[Any]] = None,
+        params: list[Any] | None = None,
         param_names: list[str] = [],
         ttl: int = 86400
     ) -> Any:
@@ -338,5 +339,5 @@ class MRCClient:
         """
         async def fn():
             return await self.query_to_promise(query, params)
-        
+
         return await self.with_cache(fn, query, params, param_names, ttl)
