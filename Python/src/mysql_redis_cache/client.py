@@ -24,6 +24,33 @@ class MRCClient:
         mysql_config: MySQL configuration (dict or connection string)
         redis_config: Redis configuration dictionary
         redis_client: Redis client instance (created lazily)
+    
+    Example:
+        Basic usage with context manager::
+        
+            mysql_config = {
+                'host': 'localhost',
+                'port': 3306,
+                'user': 'myuser',
+                'password': 'mypass',
+                'db': 'mydb'
+            }
+            redis_config = {'host': 'localhost', 'port': 6379}
+            
+            async with MRCClient(mysql_config, redis_config) as client:
+                result = await client.query_with_cache(
+                    'SELECT * FROM users WHERE id = ?',
+                    [123],
+                    ['UserId'],
+                    ttl=3600
+                )
+        
+        Using connection string::
+        
+            client = MRCClient(
+                'mysql://user:pass@localhost:3306/mydb',
+                redis_config
+            )
     """
 
     def __init__(
@@ -194,6 +221,20 @@ class MRCClient:
             
         Returns:
             Cache key string in format: "name1=value1_name2=value2_hash"
+            
+        Example::
+        
+            # Without parameters
+            key = client.get_key_from_query('SELECT * FROM users')
+            # Returns: "a1b2c3d4e5f6..." (just SHA1 hash)
+            
+            # With parameters
+            key = client.get_key_from_query(
+                'SELECT * FROM users WHERE id = ? AND store = ?',
+                [123, 456],
+                ['UserId', 'StoreId']
+            )
+            # Returns: "UserId=123_StoreId=456_a1b2c3d4e5f6..."
         """
         hash_hex = hashlib.sha1(query.encode('utf-8')).hexdigest()
         key = ''
@@ -291,6 +332,34 @@ class MRCClient:
             
         Returns:
             Function result (from cache or fresh execution)
+            
+        Example::
+        
+            # Cache expensive computation
+            async def calculate_stats(user_id: int) -> dict:
+                # Complex calculation
+                await asyncio.sleep(5)
+                return {'total': 100, 'average': 25}
+            
+            result = await client.with_cache(
+                fn=lambda: calculate_stats(123),
+                query='user_stats_v1',
+                params=[123],
+                param_names=['UserId'],
+                ttl=3600
+            )
+            
+            # Cache API call
+            async def fetch_external_data():
+                async with aiohttp.ClientSession() as session:
+                    async with session.get('https://api.example.com/data') as resp:
+                        return await resp.json()
+            
+            data = await client.with_cache(
+                fn=fetch_external_data,
+                query='external_api_v1',
+                ttl=600
+            )
         """
         if not self.redis_client:
             await self._connect_redis()
@@ -336,6 +405,30 @@ class MRCClient:
             
         Returns:
             Query results (from cache or fresh execution)
+            
+        Example::
+        
+            # Simple query without parameters
+            users = await client.query_with_cache(
+                'SELECT * FROM users',
+                ttl=3600
+            )
+            
+            # Parameterized query
+            user = await client.query_with_cache(
+                'SELECT * FROM users WHERE id = ?',
+                [123],
+                ['UserId'],
+                ttl=3600
+            )
+            
+            # Complex query with multiple parameters
+            orders = await client.query_with_cache(
+                'SELECT * FROM orders WHERE user_id = ? AND status = ?',
+                [123, 'completed'],
+                ['UserId', 'Status'],
+                ttl=1800
+            )
         """
         async def fn():
             return await self.query_to_promise(query, params)

@@ -15,6 +15,26 @@ class MRCServer:
     Attributes:
         redis_config: Redis configuration dictionary
         redis_client: Redis client instance (created lazily)
+    
+    Example:
+        Basic cache invalidation::
+        
+            redis_config = {'host': 'localhost', 'port': 6379}
+            
+            async with MRCServer(redis_config) as server:
+                # Invalidate all cache entries for a specific user
+                deleted = await server.drop_outdated_cache(['UserId'], [123])
+                print(f"Deleted {deleted} cache entries")
+        
+        Multiple key patterns::
+        
+            async with MRCServer(redis_config) as server:
+                # Invalidate entries matching multiple patterns
+                deleted = await server.drop_outdated_cache(
+                    ['UserId', 'StoreId'],
+                    [123, 456]
+                )
+                # Deletes entries with UserId=123 OR StoreId=456
     """
 
     def __init__(self, redis_config: dict[str, Any]):
