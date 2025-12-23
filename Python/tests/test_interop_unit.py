@@ -13,6 +13,8 @@ import pytest
 
 from mysql_redis_cache import MRCClient
 
+pytestmark = pytest.mark.unit
+
 
 class TestCacheKeyCompatibility:
     """Test cache key generation matches TypeScript exactly."""

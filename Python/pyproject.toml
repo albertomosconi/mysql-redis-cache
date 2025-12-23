@@ -48,6 +48,11 @@ packages = ["src/mysql_redis_cache"]
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v --cov=mysql_redis_cache --cov-report=term-missing"
+markers = [
+    "unit: Unit tests (no external dependencies)",
+    "integration: Integration tests (requires Redis/MySQL)",
+    "interop: Interoperability tests (requires Redis/MySQL/TypeScript)",
+]
 
 [tool.ruff]
 line-length = 100

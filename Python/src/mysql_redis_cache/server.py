@@ -1,6 +1,5 @@
 """MRCServer: Manage cache invalidation for MySQL-Redis-Cache."""
 
-import re
 from typing import Any
 
 import redis.asyncio as redis
@@ -34,7 +33,7 @@ class MRCServer:
                     ['UserId', 'StoreId'],
                     [123, 456]
                 )
-                # Deletes entries with UserId=123 OR StoreId=456
+                # Deletes entries with BOTH UserId=123 AND StoreId=456
     """
 
     def __init__(self, redis_config: dict[str, Any]):
@@ -57,12 +56,8 @@ class MRCServer:
 
     async def _connect_redis(self) -> None:
         """Connect to Redis using redis.asyncio."""
-        self.redis_client = redis.Redis(**self.redis_config)
-
-        # Test connection
         try:
-            # ping() returns bool, not awaitable in some versions
-            self.redis_client.ping()
+            self.redis_client = redis.Redis(**self.redis_config)
         except Exception as e:
             self.redis_client = None
             print(f"Redis Client Error: {e}")
@@ -80,8 +75,8 @@ class MRCServer:
     ) -> int:
         """Delete all cached queries matching the given key patterns.
         
-        Uses Redis SCAN to iterate all keys safely, builds regex from key_names
-        and key_values, and deletes matching entries.
+        Uses Redis SCAN to iterate all keys safely, checks that keys contain
+        ALL specified parameter matches (AND logic).
         
         Args:
             key_names: List of parameter names to match
@@ -95,7 +90,7 @@ class MRCServer:
             # Deletes all cache entries containing 'StoreId=6'
             
             await server.drop_outdated_cache(['StoreId', 'UserId'], [6, 123])
-            # Deletes entries containing 'StoreId=6' OR 'UserId=123'
+            # Deletes entries containing BOTH 'StoreId=6' AND 'UserId=123'
         """
         if not self.redis_client:
             await self._connect_redis()
@@ -103,14 +98,10 @@ class MRCServer:
         if not self.redis_client:
             return 0
 
-        # Build regex pattern from key names and values
-        # Format: "StoreId=6|UserId=123"
-        key_patterns = []
+        # Build list of exact parameter matches (e.g., ["MinAge=20", "Active=1"])
+        param_matches = []
         for name, value in zip(key_names, key_values):
-            key_patterns.append(f"{name}={value}")
-
-        key_regex_string = '|'.join(key_patterns)
-        key_regex = re.compile(key_regex_string)
+            param_matches.append(f"{name}={value}")
 
         # Use SCAN to iterate all keys safely (production-safe, unlike KEYS)
         deleted_count = 0
@@ -124,8 +115,8 @@ class MRCServer:
                 # Decode bytes to string if needed
                 key_str = key.decode('utf-8') if isinstance(key, bytes) else key
 
-                # Delete key if it matches the regex
-                if key_regex.search(key_str):
+                # Check if key contains ALL parameter matches (AND logic, not OR)
+                if all(param in key_str for param in param_matches):
                     await self.redis_client.delete(key)
                     deleted_count += 1
 

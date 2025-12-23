@@ -12,9 +12,10 @@
   },
   "scripts": {
     "lint": "eslint src --fix",
-    "pretest": "docker-compose -f tests/redis-compose.yml up -d",
-    "test": "vitest",
-    "posttest": "docker-compose -f tests/redis-compose.yml down --volumes",
+    "test:unit": "vitest run tests/index.test.ts",
+    "test:integration": "vitest run tests/mysql.test.ts",
+    "test:interop": "vitest run tests/interop.test.ts",
+    "test": "vitest run",
     "build": "rm -rf dist && tsup src/index.ts --dts --format esm,cjs"
   },
   "author": "ActValue",

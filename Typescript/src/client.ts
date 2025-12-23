@@ -55,6 +55,41 @@ export default class Client {
   }
 
   /**
+   * Normalize a database row for JSON serialization.
+   * Converts MySQL DECIMAL/NUMERIC string values to numbers for compatibility with Python.
+   * @param row - A database row object
+   * @returns - Normalized row with DECIMAL values as numbers
+   */
+  private _normalizeRow(row: any): any {
+    if (Array.isArray(row)) {
+      return row.map(r => this._normalizeRow(r));
+    }
+    
+    if (row === null || typeof row !== 'object') {
+      return row;
+    }
+
+    const normalized: any = {};
+    for (const key in row) {
+      const value = row[key];
+      
+      // Convert string decimals to numbers
+      // Pattern matches: optional minus, digits, optional decimal point and digits
+      if (typeof value === 'string' && /^-?\d+\.?\d*$/.test(value)) {
+        const parsed = parseFloat(value);
+        // Only convert if it's a valid number and not too large
+        if (!isNaN(parsed) && isFinite(parsed)) {
+          normalized[key] = parsed;
+          continue;
+        }
+      }
+      
+      normalized[key] = value;
+    }
+    return normalized;
+  }
+
+  /**
    * Execute the given query as Promise
    * @param query - A MySQL query.
    * @param params - An array of parameters for the query.
@@ -64,7 +99,13 @@ export default class Client {
     if (!this.mysqlPool) this._connectMySQL();
 
     const [rows] = await this.mysqlPool!.query(query, params);
-    return rows;
+    
+    // Normalize rows to convert DECIMAL strings to numbers
+    if (Array.isArray(rows)) {
+      return rows.map(row => this._normalizeRow(row));
+    }
+    
+    return this._normalizeRow(rows);
   }
 
   /**

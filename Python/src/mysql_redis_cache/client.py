@@ -125,12 +125,8 @@ class MRCClient:
         if not self.redis_config:
             return
 
-        self.redis_client = redis.Redis(**self.redis_config)
-
-        # Test connection
         try:
-            # ping() returns bool, not awaitable in some versions, just try to use it
-            self.redis_client.ping()
+            self.redis_client = redis.Redis(**self.redis_config)
         except Exception as e:
             self.redis_client = None
             print(f"Redis Client Error: {e}")

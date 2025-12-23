@@ -9,6 +9,8 @@ import pytest
 
 from mysql_redis_cache import MRCClient, MRCServer
 
+pytestmark = pytest.mark.unit
+
 
 class TestCacheKeyGeneration:
     """Test cache key generation logic."""
@@ -298,17 +300,17 @@ class TestMRCServer:
         # Mock Redis client
         mock_redis = AsyncMock()
         mock_redis.scan = AsyncMock(side_effect=[
-            (1, [b'StoreId=6_abc123', b'UserId=123_def456', b'StoreId=7_ghi789']),
+            (1, [b'StoreId=6_UserId=123_abc123', b'StoreId=6_UserId=456_def456', b'StoreId=7_UserId=123_ghi789']),
             (0, [b'UserId=999_jkl012'])
         ])
         mock_redis.delete = AsyncMock()
         server.redis_client = mock_redis
 
-        # Should match StoreId=6 OR UserId=123
+        # Should match BOTH StoreId=6 AND UserId=123 (AND logic)
         count = await server.drop_outdated_cache(['StoreId', 'UserId'], [6, 123])
 
-        # Should delete keys matching either pattern
-        assert count == 2
+        # Should delete only the key containing BOTH parameters
+        assert count == 1
 
     async def test_drop_outdated_cache_no_matches(self):
         """Test dropping cache when no entries match."""

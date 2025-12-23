@@ -44,22 +44,21 @@ export default class Server {
     if (!this.redisClient) await this._connectRedis();
     if (!this.redisClient) return 0;
 
-    // build regex from key names and values
-    let keyRegexString = '';
+    // Build array of exact parameter matches (e.g., ["MinAge=20", "Active=1"])
+    const paramMatches: string[] = [];
     for (let i = 0; i < keyNames.length; i++) {
-      keyRegexString += '' + keyNames[i] + '=' + keyValues[i] + '|';
+      paramMatches.push(keyNames[i] + '=' + keyValues[i]);
     }
-    keyRegexString = keyRegexString.slice(0, -1);
-    const keyRegex = new RegExp(keyRegexString);
 
-    // loop over all keys and find those who match the regex
+    // loop over all keys and find those that contain ALL parameter matches
     let reply = { cursor: '0', keys: [''] };
     let deletedCount = 0;
     do {
       reply = await this.redisClient.scan(reply.cursor);
       for (const key of reply.keys) {
-        // delete key if it matches
-        if (keyRegex.test(key)) {
+        // Check if key contains ALL parameter matches (AND logic, not OR)
+        const matchesAll = paramMatches.every(param => key.includes(param));
+        if (matchesAll) {
           await this.redisClient.del(key);
           deletedCount++;
         }

@@ -61,7 +61,8 @@ Migrate the TypeScript `@actvalue/mysql-redis-cache` library to Python, maintain
     └── tests/
         ├── __init__.py
         ├── test_cache.py           # Core caching functionality tests
-        ├── test_interop.py         # Cross-platform compatibility tests
+        ├── test_interop_unit.py    # Cross-platform compatibility unit tests
+        ├── test_interop_e2e.py     # Cross-platform E2E tests
         └── test_mysql.py           # MySQL integration tests
 ```
 
