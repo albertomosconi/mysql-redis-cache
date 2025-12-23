@@ -50,7 +50,7 @@ class MRCServer:
         """Context manager entry - returns self for use in 'async with' statements."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit - cleanup connections."""
         await self.close_redis_connection()
 

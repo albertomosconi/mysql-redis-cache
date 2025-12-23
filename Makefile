@@ -19,6 +19,7 @@ help:
 	@echo "  make build-py           - Build Python package"
 	@echo "  make publish-ts         - Publish TypeScript to npm"
 	@echo "  make publish-py         - Publish Python to PyPI"
+	@echo "  make publish-py-test    - Publish Python to Test PyPI"
 	@echo "  make clean              - Clean build artifacts"
 	@echo "  make venv-py            - Show Python virtual environment location"
 
@@ -81,7 +82,10 @@ build-py:
 	cd Python && uv build
 
 publish-py:
-	cd Python && uv publish
+	cd Python && uv run twine upload dist/*
+
+publish-py-test:
+	cd Python && uv run twine upload --repository testpypi dist/*
 
 # Utility commands
 venv-py:

@@ -30,6 +30,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
     "ruff>=0.7.0",
+    "mypy>=1.8.0",
 ]
 
 [project.urls]
@@ -72,4 +73,10 @@ exclude_lines = [
     "raise AssertionError",
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "twine>=6.2.0",
 ]

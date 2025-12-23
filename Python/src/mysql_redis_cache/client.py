@@ -77,7 +77,7 @@ class MRCClient:
         """Context manager entry - returns self for use in 'async with' statements."""
         return self
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
+    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
         """Context manager exit - cleanup connections."""
         await self.close_redis_connection()
         if self.mysql_pool:
@@ -151,7 +151,7 @@ class MRCClient:
             raise RuntimeError("MySQL pool not initialized. Call an async method first.")
         return self.mysql_pool
 
-    def _normalize_row(self, row: dict) -> dict:
+    def _normalize_row(self, row: dict[str, Any]) -> dict[str, Any]:
         """Normalize a database row for JSON serialization.
         
         Converts Decimal to float and datetime objects to ISO strings
@@ -163,7 +163,7 @@ class MRCClient:
         Returns:
             Normalized dictionary ready for JSON serialization
         """
-        normalized = {}
+        normalized: dict[str, Any] = {}
         for key, value in row.items():
             if isinstance(value, Decimal):
                 normalized[key] = float(value)
@@ -426,7 +426,7 @@ class MRCClient:
                 ttl=1800
             )
         """
-        async def fn():
+        async def fn() -> Any:
             return await self.query_to_promise(query, params)
 
         return await self.with_cache(fn, query, params, param_names, ttl)
