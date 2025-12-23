@@ -56,6 +56,7 @@ build-ts:
 	cd Typescript && npm run build
 
 publish-ts:
+	npm login
 	cd Typescript && npm publish
 
 # Python commands
