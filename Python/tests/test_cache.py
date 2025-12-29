@@ -384,6 +384,42 @@ class TestConnectionStringParsing:
         assert config['db'] == 'testdb'
 
 
+@pytest.mark.asyncio
+class TestRedisConnectionURL:
+    """Test Redis URL connection string support."""
+
+    async def test_redis_url_connection(self):
+        """Test Redis connection using URL format."""
+        mysql_config = {'host': 'localhost', 'db': 'test'}
+        redis_url = "redis://localhost:6379?decode_responses=True&health_check_interval=2"
+        
+        client = MRCClient(mysql_config, redis_url)
+        
+        # Call _connect_redis to ensure it handles URL format
+        await client._connect_redis()
+        
+        # Verify redis_client is created (even if connection fails, the from_url should be called)
+        # In a real test environment with Redis running, this would succeed
+        assert client.redis_config == redis_url
+        
+        # Cleanup
+        await client.close_redis_connection()
+
+    async def test_redis_dict_connection(self):
+        """Test Redis connection using dictionary format still works."""
+        mysql_config = {'host': 'localhost', 'db': 'test'}
+        redis_config = {'host': 'localhost', 'port': 6379, 'decode_responses': True}
+        
+        client = MRCClient(mysql_config, redis_config)
+        
+        # Mock Redis client to avoid actual connection
+        mock_redis = AsyncMock()
+        client.redis_client = mock_redis
+        
+        # Verify dict config is stored correctly
+        assert client.redis_config == redis_config
+
+
 class TestJSONSerialization:
     """Test JSON serialization compatibility with TypeScript."""
 

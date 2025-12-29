@@ -56,7 +56,7 @@ class MRCClient:
     def __init__(
         self,
         mysql_config: dict[str, Any] | str,
-        redis_config: dict[str, Any] | None = None
+        redis_config: dict[str, Any] | str | None = None
     ):
         """Initialize client with MySQL and optional Redis configuration.
         
@@ -65,8 +65,9 @@ class MRCClient:
                 Dict format: {'host': 'localhost', 'port': 3306, 'user': 'user',
                              'password': 'pass', 'db': 'database'}
                 String format: 'mysql://user:password@localhost:3306/database'
-            redis_config: Optional Redis configuration dict.
-                Format: {'host': 'localhost', 'port': 6379, 'password': 'pass'}
+            redis_config: Optional Redis configuration as dict or URL string.
+                Dict format: {'host': 'localhost', 'port': 6379, 'password': 'pass'}
+                URL format: 'redis://localhost:6379?decode_responses=True&health_check_interval=2'
         """
         self.mysql_pool: aiomysql.Pool | None = None
         self.mysql_config = mysql_config
@@ -121,12 +122,18 @@ class MRCClient:
         )
 
     async def _connect_redis(self) -> None:
-        """Connect to Redis using redis.asyncio."""
+        """Connect to Redis using redis.asyncio.
+        
+        Supports both dictionary config and URL string format.
+        """
         if not self.redis_config:
             return
 
         try:
-            self.redis_client = redis.Redis(**self.redis_config)
+            if isinstance(self.redis_config, str):
+                self.redis_client = redis.from_url(self.redis_config)
+            else:
+                self.redis_client = redis.Redis(**self.redis_config)
         except Exception as e:
             self.redis_client = None
             print(f"Redis Client Error: {e}")
